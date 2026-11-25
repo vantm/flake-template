@@ -6,27 +6,17 @@
   outputs =
     { nixpkgs, ... }:
     let
-      eachSystem =
-        systems: f:
-        nixpkgs.lib.foldl' (
-          acc: system:
-          nixpkgs.lib.recursiveUpdate acc (
-            nixpkgs.lib.mapAttrs (_: value: { ${system} = value; }) (f {
-              inherit system;
-              pkgs = import nixpkgs { inherit system; };
-            })
-          )
-        ) { } systems;
-      eachDefaultSystem = eachSystem [ "x86_64-linux" ];
+      systems = [ "x86_64-linux" ];
+      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f (import nixpkgs { inherit system; }));
     in
-    eachDefaultSystem (
-      { pkgs, ... }: {
-        devShells.default = pkgs.mkShell {
+    {
+      devShells = forAllSystems (pkgs: {
+        default = pkgs.mkShell {
           name = "Try template";
           packages = with pkgs; [
             hello
           ];
         };
-      }
-    );
+      });
+    };
 }
